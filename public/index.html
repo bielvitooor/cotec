@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="auto">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>COTEC Fácil — Chamada e Diário</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2316a34a'/%3E%3Cpath d='M18 33l9 9 19-20' fill='none' stroke='white' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <svg class="sprite" aria-hidden="true" focusable="false">
+      <symbol id="i-check-square" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="18" height="18" rx="4" />
+        <path d="m8 12 3 3 5-6" />
+      </symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14" />
+      </symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3" />
+        <path
+          d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.36a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.64 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.64 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.64h.08A1.7 1.7 0 0 0 10.11 3.08V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.36 9v.08a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.89Z"
+        />
+      </symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24">
+        <path d="M20 11a8 8 0 1 0-2.3 6.1" />
+        <path d="M20 5v6h-6" />
+      </symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        <path d="m16 17 5-5-5-5M21 12H9" />
+      </symbol>
+      <symbol id="i-search" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.5-3.5" />
+      </symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24">
+        <rect x="3" y="5" width="18" height="16" rx="3" />
+        <path d="M8 3v4M16 3v4M3 10h18" />
+      </symbol>
+      <symbol id="i-users" viewBox="0 0 24 24">
+        <path d="M16 20v-1.5a4.5 4.5 0 0 0-4.5-4.5h-3A4.5 4.5 0 0 0 4 18.5V20" />
+        <circle cx="10" cy="7.5" r="3.5" />
+        <path d="M20 20v-1.5a4.5 4.5 0 0 0-3.4-4.36M15.5 4.13a3.5 3.5 0 0 1 0 6.74" />
+      </symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24">
+        <path d="M12 3 2.5 20h19L12 3Z" />
+        <path d="M12 9v5M12 17.5v.5" />
+      </symbol>
+      <symbol id="i-x" viewBox="0 0 24 24">
+        <path d="M18 6 6 18M6 6l12 12" />
+      </symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4.5" />
+        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+      </symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24">
+        <path d="M21 13.2A9 9 0 1 1 10.8 3a7 7 0 0 0 10.2 10.2Z" />
+      </symbol>
+      <symbol id="i-save" viewBox="0 0 24 24">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" />
+        <path d="M7 3v6h9M7 21v-6h10v6" />
+      </symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24">
+        <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
+        <path d="M10 10v6M14 10v6" />
+      </symbol>
+      <symbol id="i-arrow-right" viewBox="0 0 24 24">
+        <path d="M4 12h16M14 6l6 6-6 6" />
+      </symbol>
+      <symbol id="i-arrow-left" viewBox="0 0 24 24">
+        <path d="M20 12H4M10 18l-6-6 6-6" />
+      </symbol>
+      <symbol id="i-download" viewBox="0 0 24 24">
+        <path d="M12 3v12M7 10l5 5 5-5M4 21h16" />
+      </symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24">
+        <path d="M4 6h16M4 12h16M4 18h16" />
+      </symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24">
+        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+        <circle cx="12" cy="12" r="2.5" />
+      </symbol>
+      <symbol id="i-eye-off" viewBox="0 0 24 24">
+        <path d="m3 3 18 18" />
+        <path d="M10.6 6.2A9.6 9.6 0 0 1 12 6c6.5 0 10 6 10 6a17 17 0 0 1-3.2 3.8M6.6 6.6C3.8 8.3 2 12 2 12s3.5 6 10 6a9.6 9.6 0 0 0 3.4-.6" />
+        <path d="M9.9 9.9a2.5 2.5 0 0 0 3.5 3.5" />
+      </symbol>
+    </svg>
+
+    <!-- LOGIN -->
+    <main id="login" class="login">
+      <section class="login-hero">
+        <div class="brand brand-lg">
+          <span class="brand-mark"><svg class="icon"><use href="#i-check-square" /></svg></span>
+          <span class="brand-name">COTEC <strong>Fácil</strong></span>
+        </div>
+        <h1>Chamada e diário sem burocracia.</h1>
+        <p class="login-hero-text">
+          Registre a frequência das suas quatro aulas de uma só vez, crie novas aulas e acompanhe
+          tudo em um painel simples — direto no SIGA/COTEC.
+        </p>
+        <ul class="login-points">
+          <li><svg class="icon"><use href="#i-check-square" /></svg> Chamada em lote para várias aulas</li>
+          <li><svg class="icon"><use href="#i-clock" /></svg> Rascunhos salvos no seu navegador</li>
+          <li><svg class="icon"><use href="#i-users" /></svg> Lista de alunos com presença em um clique</li>
+        </ul>
+        <p class="login-hero-foot">Feito para o fluxo do professor no SIGA Goiás.</p>
+      </section>
+
+      <section class="login-panel">
+        <div class="login-card">
+          <div class="login-card-head">
+            <h2>Entrar</h2>
+            <p>Use o mesmo CPF e senha do SIGA/COTEC.</p>
+          </div>
+          <form id="form-login" class="stack" novalidate>
+            <label class="field">
+              <span class="field-label">CPF ou login</span>
+              <input
+                id="login-usuario"
+                name="login"
+                type="text"
+                inputmode="numeric"
+                autocomplete="username"
+                placeholder="000.000.000-00"
+                required
+              />
+            </label>
+            <label class="field">
+              <span class="field-label">Senha</span>
+              <span class="field-password">
+                <input
+                  id="login-senha"
+                  name="senha"
+                  type="password"
+                  autocomplete="current-password"
+                  placeholder="Sua senha do SIGA"
+                  required
+                />
+                <button type="button" id="btn-mostrar-senha" class="btn-icon" aria-label="Mostrar senha">
+                  <svg class="icon"><use href="#i-eye" /></svg>
+                </button>
+              </span>
+            </label>
+            <label class="check">
+              <input type="checkbox" id="login-lembrar" />
+              <span>Lembrar meu CPF neste computador</span>
+            </label>
+            <p id="login-erro" class="form-error" role="alert" hidden></p>
+            <button type="submit" id="btn-entrar" class="btn btn-primary btn-block">
+              <span class="btn-label-text">Entrar no SIGA</span>
+              <span class="spinner" hidden></span>
+            </button>
+          </form>
+          <p class="login-note">
+            Sua senha não é gravada. Ela é usada apenas para abrir a sessão no SIGA e fica na
+            memória deste computador até você sair.
+          </p>
+        </div>
+        <p class="login-foot">COTEC Fácil · uso local · v1.0</p>
+      </section>
+    </main>
+
+    <!-- APP -->
+    <div id="app" class="app" hidden>
+      <header class="topbar">
+        <button id="btn-menu" class="btn-icon only-mobile" aria-label="Abrir menu">
+          <svg class="icon"><use href="#i-menu" /></svg>
+        </button>
+        <div class="brand">
+          <span class="brand-mark"><svg class="icon"><use href="#i-check-square" /></svg></span>
+          <span class="brand-name">COTEC <strong>Fácil</strong></span>
+        </div>
+        <div class="topbar-spacer"></div>
+        <div class="perfil-pill" id="perfil-pill" title="Turma conectada">
+          <span class="dot"></span>
+          <span id="perfil-texto">Conectado</span>
+        </div>
+        <button id="btn-tema" class="btn-icon" aria-label="Alternar tema">
+          <svg class="icon icon-sun"><use href="#i-sun" /></svg>
+          <svg class="icon icon-moon"><use href="#i-moon" /></svg>
+        </button>
+        <button id="btn-sair" class="btn btn-ghost btn-sm">
+          <svg class="icon"><use href="#i-logout" /></svg>
+          <span>Sair</span>
+        </button>
+      </header>
+
+      <div class="layout">
+        <aside id="sidebar" class="sidebar">
+          <nav class="nav" aria-label="Módulos">
+            <button class="nav-item is-active" data-view="chamada">
+              <svg class="icon"><use href="#i-check-square" /></svg>
+              <span>Chamada em lote</span>
+            </button>
+            <button class="nav-item" data-view="nova">
+              <svg class="icon"><use href="#i-plus" /></svg>
+              <span>Nova aula</span>
+            </button>
+            <button class="nav-item" data-view="historico">
+              <svg class="icon"><use href="#i-clock" /></svg>
+              <span>Histórico</span>
+              <span class="nav-badge" id="nav-badge-historico" hidden>0</span>
+            </button>
+            <button class="nav-item" data-view="config">
+              <svg class="icon"><use href="#i-settings" /></svg>
+              <span>Configurações</span>
+            </button>
+          </nav>
+
+          <div class="sidebar-card">
+            <p class="sidebar-card-title">Turma conectada</p>
+            <p class="sidebar-card-main" id="sidebar-turma">—</p>
+            <p class="sidebar-card-sub" id="sidebar-componente">—</p>
+            <button type="button" class="btn btn-soft btn-sm" data-trocar-turma>
+              <svg class="icon"><use href="#i-refresh" /></svg>
+              <span>Trocar turma/módulo</span>
+            </button>
+          </div>
+
+          <div class="sidebar-foot">
+            <span id="sessao-info">Sessão ativa</span>
+            <a href="/api/diagnostico" id="link-diagnostico" target="_blank" rel="noreferrer">Diagnóstico</a>
+          </div>
+        </aside>
+
+        <main class="main">
+          <!-- CHAMADA -->
+          <section id="view-chamada" class="view">
+            <div class="page-head">
+              <div>
+                <p class="eyebrow">Chamada em lote</p>
+                <h1>Registre a frequência de uma vez</h1>
+                <p class="page-sub">
+                  Escolha o dia, selecione as aulas e envie a mesma chamada para todas elas.
+                </p>
+              </div>
+              <div class="head-actions">
+                <button type="button" class="btn btn-ghost" data-trocar-turma>
+                  <svg class="icon"><use href="#i-refresh" /></svg>
+                  <span>Trocar turma/módulo</span>
+                </button>
+                <button id="btn-atualizar-diario" class="btn btn-ghost">
+                  <svg class="icon"><use href="#i-refresh" /></svg>
+                  <span>Atualizar diário</span>
+                </button>
+              </div>
+            </div>
+
+            <ol class="stepper" aria-label="Etapas">
+              <li class="step is-active" data-step="1"><span>1</span> Aulas</li>
+              <li class="step" data-step="2"><span>2</span> Alunos</li>
+              <li class="step" data-step="3"><span>3</span> Enviar</li>
+            </ol>
+
+            <div class="card" id="card-aulas">
+              <div class="card-head">
+                <div>
+                  <h2>Escolha o dia e as aulas</h2>
+                  <p class="card-sub">As aulas do dia aparecem abaixo. Marque uma ou várias.</p>
+                </div>
+                <div class="date-nav">
+                  <button id="btn-dia-anterior" class="btn-icon" aria-label="Dia anterior">
+                    <svg class="icon"><use href="#i-arrow-left" /></svg>
+                  </button>
+                  <label class="date-input">
+                    <svg class="icon"><use href="#i-calendar" /></svg>
+                    <input type="date" id="input-data" />
+                  </label>
+                  <button id="btn-proximo-dia" class="btn-icon" aria-label="Próximo dia">
+                    <svg class="icon"><use href="#i-arrow-right" /></svg>
+                  </button>
+                  <button id="btn-hoje" class="btn btn-ghost btn-sm">Hoje</button>
+                </div>
+              </div>
+
+              <div id="lista-aulas" class="lesson-list" aria-live="polite"></div>
+              <p id="status-aulas-nota" class="lesson-note" hidden></p>
+
+              <div class="card-foot">
+                <p id="resumo-selecao" class="foot-info">Nenhuma aula selecionada.</p>
+                <div class="foot-actions">
+                  <button id="btn-selecionar-todas" class="btn btn-ghost btn-sm">Selecionar todas</button>
+                  <button id="btn-carregar-alunos" class="btn btn-primary" disabled>
+                    Carregar alunos
+                    <svg class="icon"><use href="#i-arrow-right" /></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" id="card-alunos" hidden>
+              <div class="card-head">
+                <div>
+                  <h2>Marque a chamada</h2>
+                  <p class="card-sub" id="alunos-sub">—</p>
+                </div>
+                <button id="btn-voltar-aulas" class="btn btn-ghost btn-sm">
+                  <svg class="icon"><use href="#i-arrow-left" /></svg>
+                  Trocar aulas
+                </button>
+              </div>
+
+              <div class="call-toolbar">
+                <div class="bulk-actions">
+                  <button id="btn-todos-presentes" class="btn btn-soft btn-sm">Todos presentes</button>
+                  <button id="btn-todos-ausentes" class="btn btn-soft btn-sm">Todos ausentes</button>
+                  <button id="btn-inverter" class="btn btn-ghost btn-sm">Inverter</button>
+                </div>
+                <div class="call-search">
+                  <svg class="icon"><use href="#i-search" /></svg>
+                  <input id="busca-aluno" type="search" placeholder="Buscar aluno…" />
+                </div>
+              </div>
+
+              <div id="aviso-status" class="call-banner" hidden></div>
+
+              <div class="counters">
+                <span class="counter counter-present"><strong id="cont-presentes">0</strong> presentes</span>
+                <span class="counter counter-absent"><strong id="cont-ausentes">0</strong> ausentes</span>
+                <span class="counter"><strong id="cont-total">0</strong> alunos</span>
+                <span class="counter counter-muted" id="cont-divergencia" hidden></span>
+              </div>
+
+              <div id="lista-alunos" class="student-list" aria-live="polite"></div>
+
+              <div class="card-foot sticky-foot">
+                <p class="foot-info" id="foot-alunos">—</p>
+                <div class="foot-actions">
+                  <button id="btn-salvar-rascunho" class="btn btn-ghost">
+                    <svg class="icon"><use href="#i-save" /></svg>
+                    <span>Salvar rascunho</span>
+                  </button>
+                  <button id="btn-revisar" class="btn btn-primary">
+                    Revisar e enviar
+                    <svg class="icon"><use href="#i-arrow-right" /></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- NOVA AULA -->
+          <section id="view-nova" class="view" hidden>
+            <div class="page-head">
+              <div>
+                <p class="eyebrow">Nova aula</p>
+                <h1>Registrar aula no diário</h1>
+                <p class="page-sub">
+                  Crie uma ou várias aulas seguidas. Só a data e o horário inicial são obrigatórios.
+                </p>
+              </div>
+            </div>
+
+            <form id="form-nova-aula" class="stack-lg" novalidate>
+              <div class="card">
+                <div class="card-head">
+                  <div>
+                    <h2>Quando será a aula</h2>
+                    <p class="card-sub">A quantidade define quantos campos de conteúdo aparecem.</p>
+                  </div>
+                </div>
+                <div class="form-grid">
+                  <label class="field">
+                    <span class="field-label">Data da aula *</span>
+                    <input type="date" id="nova-data" required />
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Horário inicial *</span>
+                    <input type="time" id="nova-hora" required />
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Quantidade de aulas</span>
+                    <select id="nova-qtde">
+                      <option value="1">1 aula</option>
+                      <option value="2">2 aulas</option>
+                      <option value="3">3 aulas</option>
+                      <option value="4" selected>4 aulas</option>
+                      <option value="5">5 aulas</option>
+                      <option value="6">6 aulas</option>
+                      <option value="7">7 aulas</option>
+                      <option value="8">8 aulas</option>
+                    </select>
+                  </label>
+                </div>
+                <p class="hint" id="nova-hint">
+                  Cada aula recebe um horário em sequência a partir do horário inicial.
+                </p>
+              </div>
+
+              <div class="card">
+                <div class="card-head">
+                  <div>
+                    <h2>Conteúdo das aulas</h2>
+                    <p class="card-sub">Descreva o que foi trabalhado em cada aula.</p>
+                  </div>
+                  <div class="head-actions">
+                    <button type="button" class="btn btn-ghost btn-sm" id="btn-modelo-carregar">
+                      Carregar modelo
+                    </button>
+                    <button type="button" class="btn btn-ghost btn-sm" id="btn-modelo-salvar">
+                      Salvar modelo
+                    </button>
+                  </div>
+                </div>
+                <div id="nova-conteudos" class="lesson-editor"></div>
+              </div>
+
+              <div class="card">
+                <details class="plan-details">
+                  <summary>
+                    <span>Plano de aula (opcional)</span>
+                    <span class="summary-hint">Objetivo, metodologia, recursos, bibliografia e avaliação</span>
+                  </summary>
+                  <div class="form-grid form-grid-2">
+                    <label class="field field-wide">
+                      <span class="field-label">Objetivo</span>
+                      <textarea id="nova-objetivo" rows="2" placeholder="O que os alunos devem alcançar nesta aula?"></textarea>
+                    </label>
+                    <label class="field field-wide">
+                      <span class="field-label">Metodologia</span>
+                      <textarea id="nova-metodologia" rows="2" placeholder="Como a aula será conduzida?"></textarea>
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Recursos didáticos</span>
+                      <textarea id="nova-recursos" rows="2" placeholder="Computadores, projetor, apostila…"></textarea>
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Bibliografia</span>
+                      <textarea id="nova-bibliografia" rows="2" placeholder="Referências usadas"></textarea>
+                    </label>
+                    <label class="field field-wide">
+                      <span class="field-label">Avaliação</span>
+                      <textarea id="nova-avaliacao" rows="2" placeholder="Como a aprendizagem será avaliada?"></textarea>
+                    </label>
+                  </div>
+                </details>
+              </div>
+
+              <div id="nova-erro" class="form-error" role="alert" hidden></div>
+
+              <div class="form-actions">
+                <button type="button" id="btn-limpar-nova" class="btn btn-ghost">Limpar</button>
+                <button type="submit" id="btn-salvar-aula" class="btn btn-primary">
+                  <span class="btn-label-text">Registrar aula no SIGA</span>
+                  <span class="spinner" hidden></span>
+                </button>
+              </div>
+            </form>
+
+            <div id="nova-sucesso" class="success-card" hidden>
+              <div class="success-icon"><svg class="icon"><use href="#i-check-square" /></svg></div>
+              <div>
+                <h3 id="nova-sucesso-titulo">Aula registrada</h3>
+                <p id="nova-sucesso-texto">—</p>
+              </div>
+              <div class="success-actions">
+                <button type="button" class="btn btn-ghost btn-sm" id="btn-nova-outra">Criar outra</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-ir-chamada">Ir para a chamada</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- HISTÓRICO -->
+          <section id="view-historico" class="view" hidden>
+            <div class="page-head">
+              <div>
+                <p class="eyebrow">Histórico</p>
+                <h1>Envios feitos neste computador</h1>
+                <p class="page-sub">Fica salvo apenas no seu navegador. Nada é enviado para outros servidores.</p>
+              </div>
+              <div class="head-actions">
+                <button id="btn-exportar-historico" class="btn btn-ghost">
+                  <svg class="icon"><use href="#i-download" /></svg>
+                  <span>Exportar</span>
+                </button>
+                <button id="btn-limpar-historico" class="btn btn-ghost btn-danger">
+                  <svg class="icon"><use href="#i-trash" /></svg>
+                  <span>Limpar</span>
+                </button>
+              </div>
+            </div>
+            <div id="historico-lista" class="timeline"></div>
+          </section>
+
+          <!-- CONFIGURAÇÕES -->
+          <section id="view-config" class="view" hidden>
+            <div class="page-head">
+              <div>
+                <p class="eyebrow">Configurações</p>
+                <h1>Preferências do painel</h1>
+                <p class="page-sub">Ajustes salvos neste navegador.</p>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2>Chamada</h2>
+                  <p class="card-sub">Como a lista de alunos deve se comportar.</p>
+                </div>
+              </div>
+              <div class="setting-list">
+                <label class="setting">
+                  <span>
+                    <strong>Marcar todos como presentes ao carregar</strong>
+                    <small>Alunos sem status no SIGA começam como presentes.</small>
+                  </span>
+                  <input type="checkbox" id="conf-padrao-presente" class="switch" />
+                </label>
+                <label class="setting">
+                  <span>
+                    <strong>Pedir confirmação antes de enviar</strong>
+                    <small>Mostra o resumo das aulas e alunos antes do envio final.</small>
+                  </span>
+                  <input type="checkbox" id="conf-confirmar" class="switch" />
+                </label>
+                <label class="setting">
+                  <span>
+                    <strong>Mostrar CPF dos alunos</strong>
+                    <small>Ajuda a diferenciar alunos com nomes parecidos.</small>
+                  </span>
+                  <input type="checkbox" id="conf-mostrar-cpf" class="switch" />
+                </label>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2>Nova aula</h2>
+                  <p class="card-sub">Valores usados como ponto de partida.</p>
+                </div>
+              </div>
+              <div class="form-grid">
+                <label class="field">
+                  <span class="field-label">Horário inicial padrão</span>
+                  <input type="time" id="conf-hora-padrao" />
+                </label>
+                <label class="field">
+                  <span class="field-label">Quantidade padrão de aulas</span>
+                  <select id="conf-qtde-padrao">
+                    <option value="1">1 aula</option>
+                    <option value="2">2 aulas</option>
+                    <option value="3">3 aulas</option>
+                    <option value="4">4 aulas</option>
+                    <option value="5">5 aulas</option>
+                    <option value="6">6 aulas</option>
+                    <option value="7">7 aulas</option>
+                    <option value="8">8 aulas</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2>Aparência</h2>
+                  <p class="card-sub">Tema do painel.</p>
+                </div>
+              </div>
+              <div class="segmented" role="radiogroup" aria-label="Tema">
+                <button type="button" class="segment" data-tema="auto">Automático</button>
+                <button type="button" class="segment" data-tema="claro">Claro</button>
+                <button type="button" class="segment" data-tema="escuro">Escuro</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2>Dados locais</h2>
+                  <p class="card-sub">Rascunhos, histórico, modelos e preferências.</p>
+                </div>
+              </div>
+              <div class="setting-list">
+                <div class="setting">
+                  <span>
+                    <strong>Rascunhos de chamada</strong>
+                    <small id="conf-rascunhos-info">Nenhum rascunho salvo.</small>
+                  </span>
+                  <button type="button" class="btn btn-ghost btn-sm btn-danger" id="btn-limpar-rascunhos">
+                    Limpar rascunhos
+                  </button>
+                </div>
+                <div class="setting">
+                  <span>
+                    <strong>Todos os dados locais</strong>
+                    <small>Remove histórico, rascunhos, modelos e preferências deste navegador.</small>
+                  </span>
+                  <button type="button" class="btn btn-ghost btn-sm btn-danger" id="btn-limpar-tudo">
+                    Apagar tudo
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2>Sobre</h2>
+                  <p class="card-sub">COTEC Fácil v1.0 · painel local para o SIGA/COTEC.</p>
+                </div>
+              </div>
+              <div class="about-grid">
+                <div><span>Servidor</span><strong>localhost:3000</strong></div>
+                <div><span>Sessão</span><strong id="about-sessao">—</strong></div>
+                <div><span>Turma</span><strong id="about-turma">—</strong></div>
+                <div><span>Última atualização</span><strong id="about-atualizacao">—</strong></div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div id="toasts" class="toasts" aria-live="polite"></div>
+
+    <div id="modal" class="modal" hidden>
+      <div class="modal-backdrop" data-fechar-modal></div>
+      <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow" id="modal-eyebrow">Confirmar</p>
+            <h2 id="modal-titulo">Revisar chamada</h2>
+          </div>
+          <button type="button" class="btn-icon" data-fechar-modal aria-label="Fechar">
+            <svg class="icon"><use href="#i-x" /></svg>
+          </button>
+        </div>
+        <div class="modal-body" id="modal-corpo"></div>
+        <div class="modal-foot" id="modal-acoes"></div>
+      </div>
+    </div>
+
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>
