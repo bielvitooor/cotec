@@ -13,6 +13,7 @@ O foco é o fluxo do professor que dá várias aulas seguidas no mesmo dia: esco
 - **Chamada em lote**: escolhe o dia, marca 1–8 aulas e envia a mesma frequência para todas.
 - **Aulas sem chamada em amarelo**: o painel confere o diário e destaca as aulas que ainda não têm nenhuma frequência lançada.
 - **Lista de alunos** com presença/ausência em um clique, busca por nome e atalhos “todos presentes”, “todos ausentes” e “inverter”.
+- **Presença em bloco**: marque os alunos com checkbox e aplique **Presente** ou **Ausente** de uma vez — ideal para lançar todos como ausentes e depois marcar só quem veio.
 - **Rascunho automático** no navegador: se fechar a aba, a seleção e as marcações voltam ao reabrir.
 - **Conferência no SIGA**: depois de enviar, o painel reabre cada aula e confere aluno por aluno, mostrando divergências.
 - **Nova aula**: cria uma ou várias aulas de uma vez, com conteúdo e observações por aula e plano de aula opcional.
@@ -62,9 +63,12 @@ Depois abra `http://localhost:3000`.
 2. As aulas **em amarelo** ainda não têm frequência lançada no SIGA. Marque as aulas do dia (ou use **Selecionar todas**).
 3. Clique em **Carregar alunos**.
 4. Ajuste a chamada:
-   - **Todos presentes** para começar do zero;
-   - clique em **Ausente** apenas em quem faltou;
-   - use a busca para achar um aluno rapidamente.
+   - **Todos ausentes** para começar do zero e depois marcar só quem veio;
+   - marque os presentes com **checkbox** e clique em **Marcar presente** para aplicar de uma vez;
+   - ou marque os ausentes e clique em **Marcar ausente**;
+   - use **Selecionar todos** para pegar todos os alunos visíveis na busca;
+   - **Limpar seleção** desfaz a seleção sem mudar as marcações;
+   - a busca por nome ajuda a achar um aluno rapidamente.
 5. Clique em **Revisar e enviar** e confira o resumo (aulas, presentes, ausentes e nomes dos ausentes).
 6. Confirme. O painel envia aula por aula e mostra o resultado de cada uma.
 
@@ -72,7 +76,7 @@ Depois abra `http://localhost:3000`.
 
 ### Status que já estavam no SIGA
 
-Ao carregar os alunos, o painel importa o status atual de cada um naquela aula. Se houver alunos já marcados como ausentes, aparece um aviso em amarelo com a quantidade. Use **Todos presentes** se quiser recomeçar a chamada do zero.
+Ao carregar os alunos, o painel importa o status atual de cada um naquela aula. Se houver alunos já marcados como ausentes, aparece um aviso em amarelo com a quantidade. Use **Todos presentes** ou **Todos ausentes** se quiser recomeçar a chamada do zero; depois use os checkboxes para corrigir só quem precisar.
 
 Os status do SIGA também são usados para detectar alterações: o contador mostra quantos alunos estão diferentes do que estava gravado.
 
@@ -120,6 +124,7 @@ Os campos do plano podem ser salvos como **modelo** e reutilizados em outras aul
 | “Não foi possível falar com o servidor local.” | A janela do servidor foi fechada. Rode `iniciar.bat` novamente. |
 | A porta 3000 está em uso | Feche o outro programa ou rode `set PORT=3001 && npm start` e abra `http://localhost:3001`. |
 | “Usuário ou senha inválidos” | Confira o CPF e a senha no site do SIGA. O painel usa a mesma autenticação. |
+| “O SIGA não recarregou o diário.” | O painel tenta reabrir a turma automaticamente. Se persistir, use **Trocar turma/módulo** e abra o diário de novo. Isso não encerra a sua sessão. |
 | Login retorna outra mensagem | Se a resposta do SIGA for inesperada, o painel salva a página recebida em `%TEMP%\cotec-login-debug.html` para diagnóstico. |
 | O SIGA demora e dá timeout | O limite é de 45 segundos por requisição; tente novamente. |
 

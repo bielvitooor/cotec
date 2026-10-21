@@ -1336,6 +1336,61 @@ input[type="search"]::-webkit-search-cancel-button {
   flex-wrap: wrap;
 }
 
+.selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 22px 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  flex-wrap: wrap;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.selection-bar.has-selection {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  background: color-mix(in srgb, var(--primary-soft) 45%, var(--surface-2));
+}
+
+.selection-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  cursor: pointer;
+  user-select: none;
+}
+
+.selection-all input,
+.student-check input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.selection-count {
+  font-size: 0.76rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.selection-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.selection-actions .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .call-search {
   position: relative;
   display: flex;
@@ -1463,6 +1518,23 @@ input[type="search"]::-webkit-search-cancel-button {
 
 .student.is-absent {
   background: color-mix(in srgb, var(--danger-soft) 35%, transparent);
+}
+
+.student.is-selected {
+  background: color-mix(in srgb, var(--primary-soft) 55%, transparent);
+  box-shadow: inset 3px 0 var(--primary);
+}
+
+.student.is-selected.is-absent {
+  background: color-mix(in srgb, var(--danger-soft) 45%, transparent);
+  box-shadow: inset 3px 0 var(--danger);
+}
+
+.student-check {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  margin-left: -4px;
 }
 
 .avatar {
@@ -2409,10 +2481,22 @@ input[type="search"]::-webkit-search-cancel-button {
 
   .lesson-list,
   .call-toolbar,
+  .selection-bar,
   .counters,
   .call-banner {
     padding-left: 16px;
     padding-right: 16px;
+  }
+
+  .selection-bar {
+    margin-left: 16px;
+    margin-right: 16px;
+    padding: 8px 10px;
+  }
+
+  .selection-actions {
+    width: 100%;
+    margin-left: 0;
   }
 
   .call-banner {

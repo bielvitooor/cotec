@@ -34,6 +34,7 @@ const estado = {
   aulasSelecionadas: new Set(),
   alunos: [],
   marcas: new Map(),
+  selecionados: new Set(),
   linhas: new Map(),
   filtro: '',
   aulaBase: null,
@@ -722,6 +723,7 @@ async function carregarAlunos() {
 
     estado.alunos = dados.alunos || [];
     estado.aulaBase = dados.aula;
+    estado.selecionados = new Set();
     estado.filtro = '';
     $('#busca-aluno').value = '';
 
@@ -764,6 +766,7 @@ async function carregarAlunos() {
 function limparAlunosUI() {
   estado.alunos = [];
   estado.marcas = new Map();
+  estado.selecionados = new Set();
   estado.linhas = new Map();
   estado.filtro = '';
   estado.aulaBase = null;
@@ -773,6 +776,7 @@ function limparAlunosUI() {
   $('#card-aulas').hidden = false;
   $('#cont-divergencia').hidden = true;
   $('#aviso-status').hidden = true;
+  atualizarBarraSelecao([]);
   atualizarEtapa(1);
 }
 
@@ -788,16 +792,20 @@ function marcaDe(aluno) {
   return estado.config.padraoPresente ? 'P' : 'A';
 }
 
-function renderizarAlunos() {
-  const lista = $('#lista-alunos');
+function alunosVisiveis() {
   const termo = normalizar(estado.filtro);
-  const visiveis = estado.alunos.filter((aluno) => {
+  return estado.alunos.filter((aluno) => {
     if (!termo) return true;
     const nome = normalizar(aluno.nome);
     const cpf = String(aluno.cpf || '').replace(/\D/g, '');
     const buscaDigitos = estado.filtro.replace(/\D/g, '');
     return nome.includes(termo) || (buscaDigitos && cpf.includes(buscaDigitos));
   });
+}
+
+function renderizarAlunos() {
+  const lista = $('#lista-alunos');
+  const visiveis = alunosVisiveis();
 
   if (!visiveis.length) {
     lista.innerHTML = `
@@ -805,6 +813,7 @@ function renderizarAlunos() {
       <p>Tente outro nome ou limpe a busca.</p></div>`;
     estado.linhas = new Map();
     atualizarContadores();
+    atualizarBarraSelecao(visiveis);
     return;
   }
 
@@ -812,6 +821,7 @@ function renderizarAlunos() {
   estado.linhas = new Map();
   $$('.student', lista).forEach((el) => estado.linhas.set(el.dataset.aluno, el));
   atualizarContadores();
+  atualizarBarraSelecao(visiveis);
   atualizarAvisoStatus();
 }
 
@@ -837,10 +847,18 @@ function atualizarAvisoStatus() {
 function linhaAluno(aluno) {
   const id = String(aluno.id);
   const marca = marcaDe(aluno);
+  const selecionado = estado.selecionados.has(id);
   const meta = estado.config.mostrarCpf && aluno.cpf ? `CPF ${aluno.cpf}` : '';
 
   return `
-    <div class="student ${marca === 'A' ? 'is-absent' : ''}" data-aluno="${escapar(id)}">
+    <div class="student ${marca === 'A' ? 'is-absent' : ''} ${
+      selecionado ? 'is-selected' : ''
+    }" data-aluno="${escapar(id)}">
+      <label class="student-check" title="Selecionar ${escapar(aluno.nome)} para ação em bloco">
+        <input type="checkbox" data-selecionar="${escapar(id)}" ${
+          selecionado ? 'checked' : ''
+        } aria-label="Selecionar ${escapar(aluno.nome)}" />
+      </label>
       <span class="avatar">${escapar(iniciais(aluno.nome))}</span>
       <span class="student-info">
         <span class="student-name">${escapar(aluno.nome)}</span>
@@ -858,18 +876,21 @@ function linhaAluno(aluno) {
     </div>`;
 }
 
+function atualizarLinhaAluno(id, valor) {
+  const linha = estado.linhas.get(String(id));
+  if (!linha) return;
+  linha.classList.toggle('is-absent', valor === 'A');
+  const [presente, ausente] = $$('.segment', linha);
+  presente.classList.toggle('is-on', valor === 'P');
+  presente.setAttribute('aria-pressed', String(valor === 'P'));
+  ausente.classList.toggle('is-on', valor === 'A');
+  ausente.setAttribute('aria-pressed', String(valor === 'A'));
+}
+
 function marcarAluno(id, valor) {
   const chave = String(id);
   estado.marcas.set(chave, valor);
-  const linha = estado.linhas.get(chave);
-  if (linha) {
-    linha.classList.toggle('is-absent', valor === 'A');
-    const [presente, ausente] = $$('.segment', linha);
-    presente.classList.toggle('is-on', valor === 'P');
-    presente.setAttribute('aria-pressed', String(valor === 'P'));
-    ausente.classList.toggle('is-on', valor === 'A');
-    ausente.setAttribute('aria-pressed', String(valor === 'A'));
-  }
+  atualizarLinhaAluno(chave, valor);
   atualizarContadores();
   agendarRascunho();
 }
@@ -878,20 +899,114 @@ function definirTodos(transformar) {
   if (!estado.alunos.length) return;
   for (const aluno of estado.alunos) {
     const chave = String(aluno.id);
-    estado.marcas.set(chave, transformar(marcaDe(aluno)));
-    const linha = estado.linhas.get(chave);
-    if (linha) {
-      const valor = estado.marcas.get(chave);
-      linha.classList.toggle('is-absent', valor === 'A');
-      const [presente, ausente] = $$('.segment', linha);
-      presente.classList.toggle('is-on', valor === 'P');
-      presente.setAttribute('aria-pressed', String(valor === 'P'));
-      ausente.classList.toggle('is-on', valor === 'A');
-      ausente.setAttribute('aria-pressed', String(valor === 'A'));
-    }
+    const valor = transformar(marcaDe(aluno));
+    estado.marcas.set(chave, valor);
+    atualizarLinhaAluno(chave, valor);
   }
   atualizarContadores();
   agendarRascunho();
+}
+
+function atualizarBarraSelecao(visiveis = null) {
+  const barra = $('#selection-bar');
+  if (!barra) return;
+  const lista = visiveis || alunosVisiveis();
+  const total = estado.selecionados.size;
+  const todosVisiveis =
+    lista.length > 0 && lista.every((aluno) => estado.selecionados.has(String(aluno.id)));
+  const algunsVisiveis = lista.some((aluno) => estado.selecionados.has(String(aluno.id)));
+
+  const caixaTodos = $('#chk-selecionar-visiveis');
+  if (caixaTodos) {
+    caixaTodos.checked = todosVisiveis;
+    caixaTodos.indeterminate = !todosVisiveis && algunsVisiveis;
+    caixaTodos.disabled = lista.length === 0;
+  }
+
+  const contador = $('#selection-count');
+  if (contador) {
+    const visiveisSelecionados = lista.filter((aluno) =>
+      estado.selecionados.has(String(aluno.id)),
+    ).length;
+    const foraDaBusca = Math.max(0, total - visiveisSelecionados);
+    contador.textContent =
+      total === 0
+        ? 'Nenhum aluno selecionado'
+        : `${total} aluno(s) selecionado(s)${
+            foraDaBusca ? ` · ${foraDaBusca} fora da busca` : ''
+          }`;
+  }
+
+  barra.classList.toggle('has-selection', total > 0);
+  for (const seletor of [
+    '#btn-selecionados-presentes',
+    '#btn-selecionados-ausentes',
+    '#btn-limpar-selecao',
+  ]) {
+    const botao = $(seletor);
+    if (botao) botao.disabled = total === 0;
+  }
+}
+
+function definirSelecao(id, selecionado) {
+  const chave = String(id);
+  if (selecionado) estado.selecionados.add(chave);
+  else estado.selecionados.delete(chave);
+
+  const linha = estado.linhas.get(chave);
+  if (linha) {
+    linha.classList.toggle('is-selected', selecionado);
+    const caixa = $('input[data-selecionar]', linha);
+    if (caixa) caixa.checked = selecionado;
+  }
+  atualizarBarraSelecao();
+}
+
+function selecionarVisiveis(selecionar) {
+  for (const aluno of alunosVisiveis()) {
+    const chave = String(aluno.id);
+    if (selecionar) estado.selecionados.add(chave);
+    else estado.selecionados.delete(chave);
+
+    const linha = estado.linhas.get(chave);
+    if (linha) {
+      linha.classList.toggle('is-selected', selecionar);
+      const caixa = $('input[data-selecionar]', linha);
+      if (caixa) caixa.checked = selecionar;
+    }
+  }
+  atualizarBarraSelecao();
+}
+
+function limparSelecao() {
+  estado.selecionados.clear();
+  for (const linha of estado.linhas.values()) {
+    linha.classList.remove('is-selected');
+    const caixa = $('input[data-selecionar]', linha);
+    if (caixa) caixa.checked = false;
+  }
+  atualizarBarraSelecao();
+}
+
+function marcarSelecionados(valor) {
+  if (!estado.selecionados.size) {
+    toast('Selecione ao menos um aluno primeiro.', 'warn');
+    return;
+  }
+  let total = 0;
+  for (const aluno of estado.alunos) {
+    const chave = String(aluno.id);
+    if (!estado.selecionados.has(chave)) continue;
+    estado.marcas.set(chave, valor);
+    atualizarLinhaAluno(chave, valor);
+    total += 1;
+  }
+  atualizarContadores();
+  agendarRascunho();
+  toast(
+    `${total} aluno(s) marcado(s) como ${valor === 'P' ? 'presente(s)' : 'ausente(s)'}.`,
+    'ok',
+  );
 }
 
 function contarMarcas() {
@@ -2125,11 +2240,24 @@ function ligarEventos() {
     marcarAluno(linha.dataset.aluno, botao.dataset.valor);
   });
 
+  $('#lista-alunos').addEventListener('change', (evento) => {
+    const caixa = evento.target.closest('input[data-selecionar]');
+    if (!caixa) return;
+    definirSelecao(caixa.dataset.selecionar, caixa.checked);
+  });
+
   $('#btn-todos-presentes').addEventListener('click', () => definirTodos(() => 'P'));
   $('#btn-todos-ausentes').addEventListener('click', () => definirTodos(() => 'A'));
   $('#btn-inverter').addEventListener('click', () =>
     definirTodos((marca) => (marca === 'P' ? 'A' : 'P')),
   );
+
+  $('#chk-selecionar-visiveis').addEventListener('change', (evento) => {
+    selecionarVisiveis(evento.target.checked);
+  });
+  $('#btn-selecionados-presentes').addEventListener('click', () => marcarSelecionados('P'));
+  $('#btn-selecionados-ausentes').addEventListener('click', () => marcarSelecionados('A'));
+  $('#btn-limpar-selecao').addEventListener('click', limparSelecao);
 
   $('#busca-aluno').addEventListener('input', (evento) => {
     estado.filtro = evento.target.value;

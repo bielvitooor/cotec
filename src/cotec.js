@@ -313,6 +313,14 @@ function loginErrorMessage(html) {
   return null;
 }
 
+function paginaDeLogin(html) {
+  if (!html) return false;
+  return (
+    /Usuário não autorizado/i.test(html) ||
+    (/name=["']pswd["']/i.test(html) && /prof_Login|Módulo do Professor/i.test(html))
+  );
+}
+
 function salvarDebugPagina(nome, html) {
   try {
     const arquivo = path.join(os.tmpdir(), `cotec-${nome}-debug.html`);
@@ -465,6 +473,7 @@ export class CotecSession {
     this.selection = null;
     this.pendingSelection = null;
     this.attendanceCache = new Map();
+    this.lastFrequencyHtml = null;
   }
 
   async followLoginTransitions(html, referer, max = 5) {
@@ -571,7 +580,7 @@ export class CotecSession {
       { referer: '/prof_menu/' },
     );
 
-    if (/Usuário não autorizado/i.test(html)) {
+    if (paginaDeLogin(html)) {
       this.authenticated = false;
       throw new CotecError('O SIGA não autorizou a sessão. Verifique o login e tente novamente.', 401);
     }
@@ -769,6 +778,10 @@ export class CotecSession {
       professorId: String(professor.value),
     };
 
+    // O formulário F3 pertence ao diário anterior. Se o redirecionamento do
+    // novo módulo não abrir o diário, a recuperação deve usar a seleção nova.
+    this.diaryFormFields = null;
+    this.lastFrequencyHtml = null;
     const diario = await this.getDiary(diaryHtml);
     this.profile = {
       ...this.profile,
@@ -816,34 +829,139 @@ export class CotecSession {
     };
   }
 
-  async getDiary(htmlInicial = null) {
-    let html = htmlInicial || (await this.http.getText('/prof_diario_grid/'));
-    const checarAcesso = (conteudo) => {
-      const semSessao =
-        /Usuário não autorizado/i.test(conteudo) ||
-        /Dados inválidos/i.test(conteudo) ||
-        (/name=["']pswd["']/i.test(conteudo) && /prof_Login|Módulo do Professor/i.test(conteudo));
-      if (semSessao) {
-        if (htmlInicial && /Dados inválidos/i.test(conteudo)) salvarDebugPagina('diario', conteudo);
-        this.authenticated = false;
-        throw new CotecError(
-          htmlInicial
-            ? 'O SIGA autenticou, mas não abriu o diário. Tente novamente.'
-            : 'Sua sessão do SIGA expirou. Entre novamente.',
-          401,
+  async reabrirDiario() {
+    // 1) Reenvia o formulário F3 do diário. Funciona quando o ScriptCase só
+    // perdeu o contexto da grade (por exemplo, depois de abrir uma frequência).
+    if (this.diaryFormFields) {
+      try {
+        const resposta = await this.http.postText(
+          '/prof_diario_grid/',
+          {
+            ...this.diaryFormFields,
+            nmgp_opcao: 'grid',
+            nm_grid_submit: '1',
+          },
+          { referer: '/prof_diario_grid/' },
         );
+        const html = await this.followRedirectForms(resposta, '/prof_diario_grid/');
+        if (paginaDeLogin(html)) {
+          this.authenticated = false;
+          throw new CotecError('Sua sessão do SIGA expirou. Entre novamente.', 401);
+        }
+        const parsed = parseDiary(html);
+        if (parsed.lessons.length || parsed.formFields) return html;
+      } catch (erro) {
+        if (erro.status === 401) throw erro;
+        console.error('[COTEC] POST do diário falhou:', erro.message);
       }
+    }
+
+    // 2) Reabre a seleção de turma/módulo, que termina no diário. É o caminho
+    // mais confiável quando o contexto da sessão foi perdido por completo.
+    if (this.selection) {
+      const atual = this.selection;
+      const pendente = await this.prepararSelecao({
+        idEscolas: atual.idEscolas,
+        idTurma: atual.idTurma,
+        idComponente: atual.idComponente,
+        professorId: atual.professorId,
+        modulo: atual.modulo,
+      });
+      const moduleFields = {
+        ...pendente.moduleFormFields,
+        id_turmas_fics_prof: pendente.professorId,
+        modulo: pendente.modulo,
+        id_matriculas: '',
+        nmgp_opcao: 'alterar',
+      };
+      const moduleResponse = await this.http.postText('/prof_aulas_sel2/', moduleFields, {
+        referer: '/prof_aulas_sel2/',
+      });
+      const diaryHtml = await this.followRedirectForms(moduleResponse, '/prof_aulas_sel2/');
+      if (paginaDeLogin(diaryHtml)) {
+        this.authenticated = false;
+        throw new CotecError('Sua sessão do SIGA expirou. Entre novamente.', 401);
+      }
+      const parsed = parseDiary(diaryHtml);
+      if (parsed.lessons.length || parsed.formFields) {
+        this.selection = { ...pendente };
+        this.pendingSelection = null;
+        this.profile = {
+          ...(this.profile || {}),
+          escolaTurma: `${pendente.escola || ''} - ${pendente.turma || ''}`.replace(/^ - /, ''),
+          escola: pendente.escola || null,
+          turma: pendente.turma || null,
+          componente: pendente.componente || null,
+          professor: pendente.professor || null,
+          idEscolas: pendente.idEscolas,
+          idTurma: pendente.idTurma,
+          idComponente: pendente.idComponente,
+          modulo: pendente.modulo,
+          moduloTexto: pendente.moduloTexto,
+          professorId: pendente.professorId,
+        };
+        return diaryHtml;
+      }
+    }
+
+    return null;
+  }
+
+  async getDiary(htmlInicial = null) {
+    let html = htmlInicial || '';
+    let parsed = { lessons: [], formFields: null };
+    const vazio = () => !parsed.lessons.length && !parsed.formFields;
+    const conferirLogin = (conteudo) => {
+      if (!paginaDeLogin(conteudo)) return;
+      this.authenticated = false;
+      throw new CotecError(
+        htmlInicial
+          ? 'O SIGA autenticou, mas não abriu o diário. Tente novamente.'
+          : 'Sua sessão do SIGA expirou. Entre novamente.',
+        401,
+      );
     };
-    checarAcesso(html);
-    let parsed = parseDiary(html);
-    if (htmlInicial && !parsed.lessons.length && !parsed.formFields) {
-      // Se a página veio de um redirecionamento intermediário, tenta a via direta.
+
+    if (html) {
+      conferirLogin(html);
+      parsed = parseDiary(html);
+      if (vazio()) {
+        // Se a página veio de um redirecionamento intermediário, tenta a via direta.
+        html = await this.http.getText('/prof_diario_grid/');
+        conferirLogin(html);
+        parsed = parseDiary(html);
+      }
+    } else {
       html = await this.http.getText('/prof_diario_grid/');
-      checarAcesso(html);
+      conferirLogin(html);
       parsed = parseDiary(html);
     }
-    if (!parsed.lessons.length && !parsed.formFields) {
-      if (htmlInicial) salvarDebugPagina('diario', html);
+
+    if (vazio()) {
+      // Abrir a grade de frequência muda o contexto do ScriptCase. Nesse caso o
+      // GET direto pode devolver "Dados inválidos" mesmo com a sessão válida.
+      // Tenta reabrir o diário antes de encerrar a sessão do usuário.
+      try {
+        const reaberto = await this.reabrirDiario();
+        if (reaberto) {
+          html = reaberto;
+          conferirLogin(html);
+          parsed = parseDiary(html);
+        }
+      } catch (erro) {
+        if (erro.status === 401) throw erro;
+        console.error('[COTEC] Não foi possível reabrir o diário:', erro.message);
+      }
+    }
+
+    if (vazio()) {
+      salvarDebugPagina('diario', html);
+      if (/Dados inválidos/i.test(html)) {
+        throw new CotecError(
+          'O SIGA não recarregou o diário. Tente novamente em instantes.',
+          502,
+        );
+      }
       throw new CotecError('Não foi possível ler o diário. Verifique a turma selecionada.');
     }
     this.diary = parsed;
@@ -864,42 +982,71 @@ export class CotecSession {
   async getFrequency(lessonId) {
     const lesson = await this.resolveLesson(lessonId);
     const html = await this.openFrequency(lesson);
+    this.lastFrequencyHtml = html;
     const parsed = parseFrequency(html);
     parsed.lesson = lesson;
     parsed.scriptCaseInit = parsed.scriptCaseInit || this.diaryFormFields?.script_case_init || '';
     return parsed;
   }
 
+  async fecharFrequencia(html = this.lastFrequencyHtml) {
+    if (!html) return false;
+    const form = getForm(html, 'F5');
+    if (!form) return false;
+    try {
+      const resposta = await this.http.postText(
+        '/prof_diario_frequencia_grid/prof_diario_frequencia_grid_fim.php',
+        form.fields,
+        { referer: '/prof_diario_frequencia_grid/' },
+      );
+      await this.followRedirectForms(resposta, '/prof_diario_frequencia_grid/');
+      return true;
+    } catch (erro) {
+      // A volta é só uma limpeza de contexto; nunca deve derrubar a sessão.
+      console.error('[COTEC] Não foi possível voltar da grade de frequência:', erro.message);
+      return false;
+    }
+  }
+
   async getAttendanceStatus(lessonIds = []) {
     const ids = [...new Set((lessonIds || []).map(String).filter(Boolean))].slice(0, 12);
     const resultado = [];
-    for (const id of ids) {
-      const cache = this.attendanceCache.get(id);
-      if (cache) {
-        resultado.push({ id, ...cache });
-        continue;
+    this.lastFrequencyHtml = null;
+    try {
+      for (const id of ids) {
+        const cache = this.attendanceCache.get(id);
+        if (cache) {
+          resultado.push({ id, ...cache });
+          continue;
+        }
+        try {
+          const frequencia = await this.getFrequency(id);
+          const statuses = frequencia.students.map((aluno) =>
+            String(aluno.status || '').toUpperCase(),
+          );
+          const presentes = statuses.filter((status) => /PRESENTE/.test(status)).length;
+          const ausentes = statuses.filter((status) => /AUSENTE|FALTA/.test(status)).length;
+          const info = {
+            lancada: presentes + ausentes > 0,
+            presentes,
+            ausentes,
+            total: frequencia.students.length,
+          };
+          this.attendanceCache.set(id, info);
+          resultado.push({ id, ...info });
+        } catch (erro) {
+          if (erro.status === 401) throw erro;
+          resultado.push({ id, lancada: null, erro: erro.message });
+        }
       }
-      try {
-        const frequencia = await this.getFrequency(id);
-        const statuses = frequencia.students.map((aluno) =>
-          String(aluno.status || '').toUpperCase(),
-        );
-        const presentes = statuses.filter((status) => /PRESENTE/.test(status)).length;
-        const ausentes = statuses.filter((status) => /AUSENTE|FALTA/.test(status)).length;
-        const info = {
-          lancada: presentes + ausentes > 0,
-          presentes,
-          ausentes,
-          total: frequencia.students.length,
-        };
-        this.attendanceCache.set(id, info);
-        resultado.push({ id, ...info });
-      } catch (erro) {
-        if (erro.status === 401) throw erro;
-        resultado.push({ id, lancada: null, erro: erro.message });
-      }
+      return resultado;
+    } finally {
+      // Deixa o ScriptCase de volta na grade do diário. Sem isso, um clique em
+      // "Atualizar diário" pode receber "Dados inválidos" e parecer sessão expirada.
+      const ultima = this.lastFrequencyHtml;
+      this.lastFrequencyHtml = null;
+      if (ultima) await this.fecharFrequencia(ultima);
     }
-    return resultado;
   }
 
   async resolveLesson(lessonId) {
@@ -926,7 +1073,7 @@ export class CotecSession {
     const html = await this.http.postText('/prof_diario_frequencia_grid/', fields, {
       referer: '/prof_diario_grid/',
     });
-    if (/Usuário não autorizado/i.test(html)) {
+    if (paginaDeLogin(html)) {
       this.authenticated = false;
       throw new CotecError('Sua sessão do SIGA expirou. Entre novamente.', 401);
     }
@@ -1040,6 +1187,10 @@ export class CotecSession {
       ausentes: rowsAbsent.length,
       total: verifiedParsed.students.length,
     });
+
+    // Limpa o contexto da frequência para o diário continuar atualizável.
+    await this.fecharFrequencia(verifyHtml);
+    this.lastFrequencyHtml = null;
 
     return {
       ok: mismatches.length === 0,
