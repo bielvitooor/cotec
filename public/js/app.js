@@ -1384,8 +1384,11 @@ async function enviarChamada(aulas) {
   atualizarEtapa(3);
 
   const { presentes, ausentes } = contarMarcas();
-  const idsPresentes = estado.alunos.filter((a) => marcaDe(a) === 'P').map((a) => a.id);
-  const idsAusentes = estado.alunos.filter((a) => marcaDe(a) === 'A').map((a) => a.id);
+  // O ID do aluno muda de uma aula para outra no SIGA. Enviamos também CPF e
+  // nome para o servidor localizar o mesmo aluno em todas as aulas do lote.
+  const identidadeAluno = (aluno) => ({ id: aluno.id, cpf: aluno.cpf, nome: aluno.nome });
+  const alunosPresentes = estado.alunos.filter((a) => marcaDe(a) === 'P').map(identidadeAluno);
+  const alunosAusentes = estado.alunos.filter((a) => marcaDe(a) === 'A').map(identidadeAluno);
 
   const progressoHtml = aulas
     .map(
@@ -1431,7 +1434,7 @@ async function enviarChamada(aulas) {
     try {
       const resposta = await api('/api/frequencia/aplicar', {
         method: 'POST',
-        body: JSON.stringify({ aula: aula.id, presentes: idsPresentes, ausentes: idsAusentes }),
+        body: JSON.stringify({ aula: aula.id, presentes: alunosPresentes, ausentes: alunosAusentes }),
       });
 
       const detalhe = [

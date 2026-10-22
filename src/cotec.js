@@ -1082,11 +1082,13 @@ export class CotecSession {
 
   async applyFrequency(lessonId, presentIds = [], absentIds = []) {
     const lesson = await this.resolveLesson(lessonId);
-    const wantedPresent = new Set((presentIds || []).map(String));
-    const wantedAbsent = new Set((absentIds || []).map(String));
-    for (const id of wantedPresent) wantedAbsent.delete(id);
+    const wantedPresent = prepararSelecaoAlunos(presentIds);
+    const chavesPresentes = new Set(wantedPresent.map(chaveSelecaoAluno));
+    const wantedAbsent = prepararSelecaoAlunos(absentIds).filter(
+      (selecao) => !chavesPresentes.has(chaveSelecaoAluno(selecao)),
+    );
 
-    if (!wantedPresent.size && !wantedAbsent.size) {
+    if (!wantedPresent.length && !wantedAbsent.length) {
       return {
         ok: true,
         lesson,
@@ -1099,12 +1101,7 @@ export class CotecSession {
 
     let html = await this.openFrequency(lesson);
     let parsed = parseFrequency(html);
-    const byId = new Map();
-    const byName = new Map();
-    for (const student of parsed.students) {
-      if (student.id) byId.set(String(student.id), student);
-      byName.set(normalizeName(student.name), student);
-    }
+    const indice = indexarAlunos(parsed.students);
 
     const warnings = [];
     const rowsPresent = [];
@@ -1112,17 +1109,10 @@ export class CotecSession {
     const selectedPresentNames = [];
     const selectedAbsentNames = [];
 
-    const pick = (idOrName) => {
-      const key = String(idOrName);
-      let student = byId.get(key);
-      if (!student) student = byName.get(normalizeName(key));
-      return student;
-    };
-
-    for (const id of wantedPresent) {
-      const student = pick(id);
+    for (const selecao of wantedPresent) {
+      const student = indice.buscar(selecao);
       if (!student) {
-        warnings.push(`Aluno presente não encontrado nesta aula: ${id}`);
+        warnings.push(`Aluno presente não encontrado nesta aula: ${selecao.rotulo}`);
         continue;
       }
       if (!rowsPresent.includes(student.rowValue)) {
@@ -1130,13 +1120,13 @@ export class CotecSession {
         selectedPresentNames.push(student.name);
       }
     }
-    for (const id of wantedAbsent) {
-      const student = pick(id);
+    for (const selecao of wantedAbsent) {
+      const student = indice.buscar(selecao);
       if (!student) {
-        warnings.push(`Aluno ausente não encontrado nesta aula: ${id}`);
+        warnings.push(`Aluno ausente não encontrado nesta aula: ${selecao.rotulo}`);
         continue;
       }
-      if (!rowsAbsent.includes(student.rowValue)) {
+      if (!rowsPresent.includes(student.rowValue) && !rowsAbsent.includes(student.rowValue)) {
         rowsAbsent.push(student.rowValue);
         selectedAbsentNames.push(student.name);
       }
@@ -1157,34 +1147,33 @@ export class CotecSession {
     await sleep(200);
     const verifyHtml = await this.openFrequency(lesson);
     const verifiedParsed = parseFrequency(verifyHtml);
-    const verifyById = new Map();
-    const verifyByName = new Map();
-    for (const student of verifiedParsed.students) {
-      if (student.id) verifyById.set(String(student.id), student);
-      verifyByName.set(normalizeName(student.name), student);
-    }
-    const verifyPick = (id) => verifyById.get(String(id)) || verifyByName.get(normalizeName(String(id)));
+    const indiceVerificacao = indexarAlunos(verifiedParsed.students);
 
     const mismatches = [];
-    for (const id of wantedPresent) {
-      const student = verifyPick(id);
+    for (const selecao of wantedPresent) {
+      const student = indiceVerificacao.buscar(selecao);
       if (!student) continue;
       if (!/PRESENTE/i.test(student.status)) {
         mismatches.push(`${student.name}: esperado PRESENTE, retornou "${student.status || 'sem status'}"`);
       }
     }
-    for (const id of wantedAbsent) {
-      const student = verifyPick(id);
+    for (const selecao of wantedAbsent) {
+      const student = indiceVerificacao.buscar(selecao);
       if (!student) continue;
       if (!/AUSENTE|FALTA/i.test(student.status)) {
         mismatches.push(`${student.name}: esperado AUSENTE, retornou "${student.status || 'sem status'}"`);
       }
     }
 
+    const statusVerificados = verifiedParsed.students.map((aluno) =>
+      String(aluno.status || '').toUpperCase(),
+    );
+    const presentesVerificados = statusVerificados.filter((status) => /PRESENTE/.test(status)).length;
+    const ausentesVerificados = statusVerificados.filter((status) => /AUSENTE|FALTA/.test(status)).length;
     this.attendanceCache.set(String(lessonId), {
-      lancada: true,
-      presentes: rowsPresent.length,
-      ausentes: rowsAbsent.length,
+      lancada: presentesVerificados + ausentesVerificados > 0,
+      presentes: presentesVerificados,
+      ausentes: ausentesVerificados,
       total: verifiedParsed.students.length,
     });
 
@@ -1192,8 +1181,21 @@ export class CotecSession {
     await this.fecharFrequencia(verifyHtml);
     this.lastFrequencyHtml = null;
 
+    const ok = mismatches.length === 0 && warnings.length === 0;
+    let message;
+    if (mismatches.length) {
+      message = 'O SIGA respondeu, mas a conferência encontrou divergências.';
+    } else if (warnings.length) {
+      const aplicados = rowsPresent.length + rowsAbsent.length;
+      message = aplicados
+        ? `Chamada parcial: ${aplicados} aluno(s) registrado(s) e ${warnings.length} não encontrado(s) nesta aula.`
+        : 'Nenhum aluno da seleção foi encontrado nesta aula. Nada foi registrado.';
+    } else {
+      message = `Chamada registrada: ${rowsPresent.length} presente(s) e ${rowsAbsent.length} ausente(s).`;
+    }
+
     return {
-      ok: mismatches.length === 0,
+      ok,
       lesson,
       present: rowsPresent.length,
       absent: rowsAbsent.length,
@@ -1202,10 +1204,7 @@ export class CotecSession {
       warnings,
       verified: mismatches.length === 0,
       mismatches,
-      message:
-        mismatches.length === 0
-          ? `Chamada registrada: ${rowsPresent.length} presente(s) e ${rowsAbsent.length} ausente(s).`
-          : 'O SIGA respondeu, mas a conferência encontrou divergências.',
+      message,
     };
   }
 
@@ -1406,6 +1405,84 @@ function normalizeName(value) {
     .replace(/\s+/g, ' ')
     .trim()
     .toUpperCase();
+}
+
+function somenteDigitos(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
+// O SIGA usa um ID diferente para o mesmo aluno em cada aula (é o ID da
+// matrícula/frequência daquela aula). Por isso a chamada em lote não pode
+// reutilizar o ID carregado na primeira aula: CPF e nome são as chaves estáveis.
+function normalizarSelecaoAluno(item) {
+  if (item && typeof item === 'object') {
+    return {
+      id: item.id != null ? String(item.id) : '',
+      cpf: somenteDigitos(item.cpf),
+      nome: normalizeName(item.nome ?? item.name),
+      rotulo: String(item.nome ?? item.name ?? item.cpf ?? item.id ?? 'aluno sem identificação'),
+      identidadeEstavel: true,
+    };
+  }
+  const texto = String(item ?? '').trim();
+  return {
+    id: texto,
+    cpf: '',
+    nome: normalizeName(texto),
+    rotulo: texto,
+    identidadeEstavel: false,
+  };
+}
+
+function chaveSelecaoAluno(selecao) {
+  if (selecao.cpf) return `cpf:${selecao.cpf}`;
+  if (selecao.nome) return `nome:${selecao.nome}`;
+  return `id:${selecao.id}`;
+}
+
+function prepararSelecaoAlunos(lista = []) {
+  const itens = [];
+  const vistos = new Set();
+  for (const item of Array.isArray(lista) ? lista : []) {
+    const selecao = normalizarSelecaoAluno(item);
+    if (!selecao.id && !selecao.cpf && !selecao.nome) continue;
+    const chave = chaveSelecaoAluno(selecao);
+    if (vistos.has(chave)) continue;
+    vistos.add(chave);
+    itens.push(selecao);
+  }
+  return itens;
+}
+
+function indexarAlunos(students = []) {
+  const porId = new Map();
+  const porCpf = new Map();
+  const porNome = new Map();
+  for (const student of students) {
+    if (student.id) porId.set(String(student.id), student);
+    const cpf = somenteDigitos(student.cpf);
+    if (cpf) porCpf.set(cpf, student);
+    const nome = normalizeName(student.name);
+    if (!nome) continue;
+    if (!porNome.has(nome)) porNome.set(nome, student);
+    else if (porNome.get(nome) !== student) porNome.set(nome, null);
+  }
+
+  return {
+    buscar(selecao) {
+      if (selecao.identidadeEstavel) {
+        // Prioriza CPF/nome: o ID recebido pode ser de outra aula.
+        if (selecao.cpf && porCpf.has(selecao.cpf)) return porCpf.get(selecao.cpf);
+        if (selecao.nome && porNome.has(selecao.nome)) return porNome.get(selecao.nome) || null;
+        if (selecao.id && porId.has(selecao.id)) return porId.get(selecao.id);
+        return null;
+      }
+      // Compatibilidade com chamadas antigas, que enviavam apenas o ID.
+      if (selecao.id && porId.has(selecao.id)) return porId.get(selecao.id);
+      if (selecao.nome && porNome.has(selecao.nome)) return porNome.get(selecao.nome) || null;
+      return null;
+    },
+  };
 }
 
 export function parseDiary(html) {
