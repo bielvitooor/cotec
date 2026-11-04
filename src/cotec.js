@@ -1244,8 +1244,12 @@ export class CotecSession {
     return responseHtml;
   }
 
-  async getNewLessonForm() {
-    if (!this.newLessonParms || !this.diaryFormFields) {
+  async getNewLessonForm({ renovar = false } = {}) {
+    if (renovar || !this.newLessonParms || !this.diaryFormFields) {
+      // Reabrir o diário antes de montar o formulário evita enviar CSRF/contexto
+      // velhos, especialmente depois de abrir e fechar a grade de frequência.
+      this.newLessonParms = null;
+      this.newLessonForm = null;
       await this.getDiary();
     }
     if (!this.newLessonParms) {
@@ -1295,7 +1299,10 @@ export class CotecSession {
   }
 
   async createLesson(data) {
-    if (!this.newLessonForm) await this.getNewLessonForm();
+    // Sempre reabre o formulário antes de salvar: o SIGA troca o contexto e o
+    // token CSRF ao navegar entre diário, frequência e nova aula.
+    await this.getNewLessonForm({ renovar: true });
+    const aulasAntes = new Set((this.diary?.lessons || []).map((aula) => aula.id));
     const form = this.newLessonForm;
     const qtde = Math.max(1, Math.min(8, Number.parseInt(data.qtde || '1', 10) || 1));
     const dataAula = String(data.data_aula || '').trim();
@@ -1336,7 +1343,43 @@ export class CotecSession {
     );
     const result = parseSajax(responseText);
     if (!result) {
-      throw new CotecError('O SIGA retornou uma resposta inesperada ao salvar a aula.');
+      const arquivo = salvarDebugPagina('nova-aula', responseText);
+      console.error(
+        `[COTEC] Resposta inesperada ao salvar aula${arquivo ? ` (salva em ${arquivo})` : ''}:`,
+        String(responseText || '').slice(0, 1200),
+      );
+      if (paginaDeLogin(responseText)) {
+        this.authenticated = false;
+        throw new CotecError('Sua sessão do SIGA expirou. Entre novamente.', 401);
+      }
+
+      // Mesmo sem uma resposta SAJAX válida, a aula pode ter sido criada.
+      // Recarrega o diário e confere pelo par data/horário antes de acusar erro.
+      try {
+        this.newLessonForm = null;
+        this.newLessonParms = null;
+        await this.getDiary();
+        const criada = (this.diary?.lessons || []).find(
+          (aula) =>
+            !aulasAntes.has(aula.id) &&
+            aula.date === dataAula &&
+            String(aula.time).slice(0, 5) === horaInicial.slice(0, 5),
+        );
+        if (criada) {
+          return {
+            ok: true,
+            message: `Aula de ${dataAula} criada com sucesso.`,
+            diary: this.diary,
+          };
+        }
+      } catch {
+        // Mantém o erro original; a próxima atualização do diário confirma.
+      }
+
+      throw new CotecError(
+        'O SIGA retornou uma resposta inesperada ao salvar a aula. Tente novamente; se persistir, o diagnóstico foi salvo para análise.',
+        502,
+      );
     }
     if (result.result === 'ERROR') {
       const message =
