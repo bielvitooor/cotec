@@ -10,7 +10,8 @@
   },
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "build": "node --check server.js && node --check src/cotec.js && node --check public/js/app.js"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

@@ -6,6 +6,14 @@ import { CotecError, CotecSession } from './src/cotec.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORTA = Number(process.env.PORT || 3000);
+// Localmente fica acessível só nesta máquina. Em plataformas como Render,
+// Railway e Fly.io é preciso escutar em 0.0.0.0 para o proxy da plataforma
+// alcançar o processo. Também permite forçar com HOST=0.0.0.0.
+const HOST =
+  process.env.HOST ||
+  (process.env.RENDER || process.env.RAILWAY_ENVIRONMENT || process.env.FLY_APP_NAME
+    ? '0.0.0.0'
+    : '127.0.0.1');
 const TTL_SESSAO = 8 * 60 * 60 * 1000; // 8 horas sem uso encerram a sessão local.
 
 const app = express();
@@ -348,9 +356,10 @@ const executadoDiretamente =
   process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (executadoDiretamente) {
-  app.listen(PORTA, '127.0.0.1', () => {
+  app.listen(PORTA, HOST, () => {
     console.log('');
     console.log('  COTEC Fácil');
+    console.log(`  Servidor ouvindo em ${HOST}:${PORTA}`);
     console.log(`  Abra no navegador: http://localhost:${PORTA}`);
     console.log('  Para encerrar, feche esta janela ou pressione Ctrl+C.');
     console.log('');
